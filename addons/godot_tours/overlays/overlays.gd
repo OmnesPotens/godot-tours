@@ -22,7 +22,6 @@ var dimmers: Array[Dimmer] = []
 # Duplicating here allows us to pass the style to each created highlight.
 var _highlight_style_scaled: StyleBoxFlat = null
 
-
 func _init(interface: EditorInterfaceAccess) -> void:
 	self.interface = interface
 
@@ -46,7 +45,6 @@ func _init(interface: EditorInterfaceAccess) -> void:
 	_highlight_style_scaled.expand_margin_top *= editor_scale
 	_highlight_style_scaled.expand_margin_bottom *= editor_scale
 
-
 func _process(_delta: float) -> void:
 	for dimmer: Dimmer in dimmers:
 		dimmer.film_color_rect.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -54,23 +52,26 @@ func _process(_delta: float) -> void:
 			if node is Highlight and node.get_global_rect().has_point(dimmer.get_global_mouse_position()):
 				dimmer.film_color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-
 ## Highlights a control, allowing the end user to interact with it using the mouse, and carving into the dimmers.
-func add_highlight_to_control(control: Control, rect_getter := Callable(), play_flash := false) -> void:
+func add_highlight_to_control(control: Control, rect_getter:=Callable(), play_flash:=false) -> void:
+	print("Adding highlight to control")
 	var dimmer := ensure_get_dimmer_for(control)
 
 	# Calculate overlapping highlights to avoid stacking highlights and outlines.
 	var overlaps := []
 	if rect_getter.is_null():
+		print("rect_getter is null")
 		rect_getter = control.get_global_rect
 
 	var editor_scale := EditorInterface.get_editor_scale()
 	var rect := rect_getter.call()
 	for child in dimmer.get_children():
 		if child is Highlight:
+			print("Refresh highlight")
 			child.refresh()
 			var child_rect := Rect2(child.global_position, child.custom_minimum_size)
 			if rect.grow(RECT_GROW * editor_scale).intersects(child_rect):
+				print("Adding highlight to overlaps")
 				overlaps.push_back(child)
 
 	var highlight := HighlightPackedScene.instantiate()
@@ -80,14 +81,15 @@ func add_highlight_to_control(control: Control, rect_getter := Callable(), play_
 
 	highlight.setup(control, rect_getter, dimmer, _highlight_style_scaled)
 	if overlaps.is_empty() and control is TabBar:
+		print("OVERLAPS ARE EMPTY")
 		control.tab_changed.connect(highlight.refresh_tabs)
 	elif not overlaps.is_empty():
+		print("OVERLAPS NOT EMPTY")
 		for other_highlight: Highlight in overlaps:
 			highlight.rect_getters.append_array(other_highlight.rect_getters)
 			other_highlight.queue_free()
 	control.draw.connect(highlight.refresh)
 	control.visibility_changed.connect(highlight.refresh)
-
 
 ## Removes all dimmers and consequently highlights from the editor.
 func clean_up() -> void:
@@ -96,12 +98,10 @@ func clean_up() -> void:
 	dimmers = []
 	cleaned_up.emit()
 
-
 ## Toggle dimmers visibility on/off.
 func toggle_dimmers(is_on: bool) -> void:
 	for dimmer: Dimmer in dimmers:
 		dimmer.visible = is_on
-
 
 ## Get the dimmer associated with a [Control]. There is only one dimmer per [Viewport] so the dimmer is really
 ## associated with the Control's Viewport. If there is no such dimmer, create one on the fly and return it.
@@ -119,11 +119,10 @@ func ensure_get_dimmer_for(control: Control) -> Dimmer:
 		dimmers.push_back(result)
 	return result
 
-
 ## Highlight [TreeItem]s from the given [code]tree[/code] that match the [code]predicate[/code]. The highlight can
 ## also play a flash animation if [code]play_flash[/code] is [code]true[/code]. [code]button_index[/code] specifies
 ## which button to highlight from the [TreeItem] instead of the whole item.
-func highlight_tree_items(tree: Tree, predicate: Callable, button_index := -1, play_flash := false) -> void:
+func highlight_tree_items(tree: Tree, predicate: Callable, button_index:=- 1, play_flash:=false) -> void:
 	var root := tree.get_root()
 	if root == null:
 		return
@@ -145,10 +144,9 @@ func highlight_tree_items(tree: Tree, predicate: Callable, button_index := -1, p
 			return Rect2()
 		add_highlight_to_control.call_deferred(tree, rect_getter, play_flash)
 
-
 ## Highlights multiple Scene dock [TreeItem]s by [code]names[/code]. See [method highlight_tree_items]
 ## for details on the other parameters.
-func highlight_scene_nodes_by_name(names: Array[String], button_index := -1, play_flash := false) -> void:
+func highlight_scene_nodes_by_name(names: Array[String], button_index:=- 1, play_flash:=false) -> void:
 	highlight_tree_items(
 		interface.scene_tree,
 		func(item: TreeItem) -> bool: return item.get_text(0) in names,
@@ -156,10 +154,9 @@ func highlight_scene_nodes_by_name(names: Array[String], button_index := -1, pla
 		play_flash,
 	)
 
-
 ## Highlights multiple Scene dock [TreeItem]s by [code]paths[/code]. See [method highlight_tree_items]
 ## for details on the other parameters.
-func highlight_scene_nodes_by_path(paths: Array[String], button_index := -1, play_flash := false) -> void:
+func highlight_scene_nodes_by_path(paths: Array[String], button_index:=- 1, play_flash:=false) -> void:
 	highlight_tree_items(
 		interface.scene_tree,
 		func(item: TreeItem) -> bool: return Utils.get_tree_item_path(item) in paths,
@@ -167,26 +164,24 @@ func highlight_scene_nodes_by_path(paths: Array[String], button_index := -1, pla
 		play_flash,
 	)
 
-
 ## Highlights FileSystem dock [TreeItem]s by [code]paths[/code]. See [method highlight_tree_items]
 ## for [code]play_flash[/code].
-func highlight_filesystem_paths(paths: Array[String], play_flash := false) -> void:
+func highlight_filesystem_paths(paths: Array[String], play_flash:=false) -> void:
 	highlight_tree_items(
 		interface.filesystem_tree,
 		func(item: TreeItem) -> bool: return Utils.get_tree_item_path(item) in paths,
-		-1,
+		- 1,
 		play_flash,
 	)
 
-
 ## Highlights Inspector dock properties by (programmatic) [code]name[/code]. See [method highlight_tree_items]
 ## for [code]play_flash[/code].
-func highlight_inspector_properties(names: Array[StringName], play_flash := false) -> void:
+func highlight_inspector_properties(names: Array[StringName], play_flash:=false) -> void:
 	for name in names:
-		var property: EditorProperty = Utils.find_child_by_type(
+		var property: EditorProperty = Utils.find_child(
 			interface.inspector_editor,
 			"EditorProperty",
-			true,
+			"",
 			func(ep: EditorProperty) -> bool: return ep.get_edited_property() == name,
 		)
 		if property != null:
@@ -213,25 +208,23 @@ func highlight_inspector_properties(names: Array[StringName], play_flash := fals
 				return rect
 			add_highlight_to_control.call_deferred(interface.inspector_editor, rect_getter, play_flash)
 
-
 ## Highlights Node > Signals dock [TreeItem]s by [code]signal_names[/code]. See [method highlight_tree_items]
 ## for details on the other parameters.
-func highlight_signals(signal_names: Array[String], play_flash := false) -> void:
+func highlight_signals(signal_names: Array[String], play_flash:=false) -> void:
 	highlight_tree_items(
 		interface.node_dock_signals_tree,
 		func(item: TreeItem) -> bool:
-			var predicate := func(sn: String) -> bool: return item.get_text(0).begins_with(sn)
+			var predicate:=func(sn: String) -> bool: return item.get_text(0).begins_with(sn)
 			return signal_names.any(predicate),
-		-1,
+		- 1,
 		play_flash,
 	)
-
 
 ## Higlights code lines in the current [ScriptEditor] in the range from [code]start[/code] to [code]end[/code].
 ## [code]end[/code] is optional in which case only the [code]start[/code] line gets highlighted.
 ## [code]do_center[/code] forces the [ScriptEditor] to center veritcally on the given
 ## [code]start[/code]-[code]end[/code] line range. See [method highlight_tree_items] for [code]play_flash[/code].
-func highlight_code(start: int, end := 0, caret := 0, do_center := true, play_flash := false) -> void:
+func highlight_code(start: int, end:=0, caret:=0, do_center:=true, play_flash:=false) -> void:
 	start -= 1
 	end = start if end < 1 else (end - 1)
 	if caret == 0:
@@ -253,37 +246,34 @@ func highlight_code(start: int, end := 0, caret := 0, do_center := true, play_fl
 		var rect_start := code_editor.get_rect_at_line_column(start, 0)
 		var rect_end := code_editor.get_rect_at_line_column(end, 0)
 		var rect := Rect2()
-		if rect_start.position != -Vector2i.ONE and rect_end.position != -Vector2i.ONE:
+		if rect_start.position != - Vector2i.ONE and rect_end.position != - Vector2i.ONE:
 			rect = code_editor.get_global_transform() * Rect2(rect_start.merge(rect_end))
 			rect.position.x = code_editor.global_position.x
 			rect.size.x = code_editor.size.x
 		return rect
 	add_highlight_to_control.call_deferred(code_editor, rect_getter, play_flash)
 
-
 ## Highlights arbitrary [code]controls[/code]. See [method highlight_tree_items] for [code]play_flash[/code].
-func highlight_controls(controls: Array[Control], play_flash := false) -> void:
+func highlight_controls(controls: Array[Control], play_flash:=false) -> void:
 	for control in controls:
 		if control == null:
 			continue
 		add_highlight_to_control(control, control.get_global_rect, play_flash)
 
-
 ## Highlights either the whole [code]tabs[/code] [TabBar] if [code]index == -1[/code] or the given [TabContainer] tab
 ## by [code]index[/code].
-func highlight_tab_index(tabs: Control, index := -1, play_flash := true) -> void:
-	var tab_bar: TabBar = Utils.find_child_by_type(tabs, "TabBar") if tabs is TabContainer else tabs
+func highlight_tab_index(tabs: Control, index:=- 1, play_flash:=true) -> void:
+	var tab_bar: TabBar = Utils.find_child(tabs, "TabBar") if tabs is TabContainer else tabs
 	var dimmer := ensure_get_dimmer_for(tab_bar)
-	if dimmer == null or tab_bar == null or index < -1 or index >= tab_bar.tab_count:
+	if dimmer == null or tab_bar == null or index < - 1 or index >= tab_bar.tab_count:
 		return
 
 	var rect_getter := func() -> Rect2:
-		return tab_bar.get_global_rect() if index == -1 else tab_bar.get_global_transform() * tab_bar.get_tab_rect(index)
+		return tab_bar.get_global_rect() if index == - 1 else tab_bar.get_global_transform() * tab_bar.get_tab_rect(index)
 	add_highlight_to_control(tabs, rect_getter, play_flash)
 
-
 ## Highlights a [TabContainer] tab for the given [code]tabs[/code] [TabBar] by its [code]title[/code].
-func highlight_tab_title(tabs: Control, title: String, play_flash := true) -> void:
+func highlight_tab_title(tabs: Control, title: String, play_flash:=true) -> void:
 	if not (tabs is TabContainer or tabs is TabBar):
 		return
 
@@ -292,16 +282,28 @@ func highlight_tab_title(tabs: Control, title: String, play_flash := true) -> vo
 		if title == tab_title or tabs == interface.main_screen_tabs and "%s(*)" % title == tab_title:
 			highlight_tab_index(tabs, index, play_flash)
 
-
-## Highlights a [Itemlist] in the TileMap dock, such as a tile or a terrain's drawing mode or terrain
+## Highlights a [Itemlist] in the TileMap dock
 ## tile.
-func highlight_tilemap_list_item(item_list: ItemList, item_index: int, play_flash := true) -> void:
+func highlight_tilemap_list(play_flash:=true) -> void:
+	print("highlighting itemlist")
+
+	var rect_getter := func() -> Rect2:
+			var rect:Rect2 = interface.tilemap_tiles.get_rect()
+			print("TILEMAP RECT: ", rect)
+			rect.position += interface.tilemap_tiles.global_position
+			return rect
+	add_highlight_to_control(interface.tilemap_tiles, rect_getter, play_flash)
+
+## Highlights an [Item] within an [Itemlist] in the TileMap dock, such as a tile or a terrain's drawing mode or terrain
+## tile.
+func highlight_tilemap_list_item(item_list: ItemList, item_index: int, play_flash:=true) -> void:
+	print("highlighting tilemap list item")
 	if item_list == null or item_index < 0 or item_index >= item_list.item_count:
 		return
 
-	var dimmer := ensure_get_dimmer_for(interface.tilemap)
 	var rect_getter := func() -> Rect2:
-			var rect := item_list.get_item_rect(item_index)
-			rect.position += item_list.global_position
+			var rect:Rect2 = item_list.get_item_rect(item_index)
+			print("ITEM RECT: ", rect)
+			rect.position += interface.tilemap_tiles.global_position
 			return rect
 	add_highlight_to_control(interface.tilemap, rect_getter, play_flash)

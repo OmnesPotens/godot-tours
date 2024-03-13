@@ -14,6 +14,7 @@ var context_switcher_2d_button: Button = null
 var context_switcher_3d_button: Button = null
 var context_switcher_script_button: Button = null
 var context_switcher_asset_lib_button: Button = null
+var editor_title_bar: Control = null
 var run_bar: MarginContainer = null
 var run_bar_play_button: Button = null
 var run_bar_pause_button: Button = null
@@ -91,7 +92,7 @@ var scene_tree: Tree = null
 var import_dock: VBoxContainer = null
 
 var node_create_window: ConfirmationDialog = null
-var node_create_panel: HSplitContainer = null
+var node_create_panel: Control = null
 var node_create_dialog_node_tree: Tree = null
 var node_create_dialog_search_bar: LineEdit = null
 var node_create_dialog_button_create: Button = null
@@ -106,14 +107,12 @@ var filesystem_tree: Tree = null
 var inspector_tabs: TabBar = null
 var inspector_dock: VBoxContainer = null
 var inspector_editor: EditorInspector = null
-
 var node_dock: VBoxContainer = null
 var node_dock_buttons_box: HBoxContainer = null
 var node_dock_signals_button: Button = null
 var node_dock_groups_button: Button = null
 var node_dock_signals_editor: VBoxContainer = null
 var node_dock_signals_tree: Tree = null
-
 var signals_dialog_window: ConfirmationDialog = null
 var signals_dialog: HBoxContainer = null
 var signals_dialog_tree: Tree = null
@@ -133,7 +132,6 @@ var tilemap_tiles_panel: VBoxContainer = null
 var tilemap_tiles: ItemList = null
 var tilemap_tiles_atlas_view: Control = null
 var tilemap_tiles_toolbar: HBoxContainer = null
-var tilemap_patterns_panel: VBoxContainer = null
 var tilemap_terrains_panel: VBoxContainer = null
 ## The tree on the left to select terrains in the TileMap -> Terrains tab.
 var tilemap_terrains_tree: Tree = null
@@ -141,14 +139,8 @@ var tilemap_terrains_tree: Tree = null
 var tilemap_terrains_tiles: ItemList = null
 var tilemap_terrains_toolbar: HBoxContainer = null
 var tilemap_terrains_tool_draw: Button = null
-var tilemap_panels: Array[Control] = []
 
 var tileset: Control = null
-var tileset_tabs: TabBar = null
-var tileset_tiles_panel: HSplitContainer = null
-var tileset_patterns_panel: ItemList = null
-var tileset_panels: Array[Control] = []
-
 var logger: HBoxContainer = null
 var logger_rich_text_label: RichTextLabel = null
 var debugger: MarginContainer = null
@@ -163,19 +155,21 @@ var bottom_button_debugger: Button = null
 var bottom_button_tilemap: Button = null
 var bottom_button_tileset: Button = null
 var bottom_buttons: Array[Button] = []
+var bottom_version_link_button: LinkButton = null
 
+var tabs_text := {}
 
 func _init() -> void:
 	base_control = EditorInterface.get_base_control()
 
 	# Top
-	var editor_title_bar := Utils.find_child_by_type(base_control, "EditorTitleBar")
-	menu_bar = Utils.find_child_by_type(editor_title_bar, "MenuBar")
+	editor_title_bar = Utils.find_child(base_control, "EditorTitleBar")
+	menu_bar = Utils.find_child(editor_title_bar, "MenuBar")
 
-	context_switcher = Utils.find_child_by_type(
+	context_switcher = Utils.find_child(
 		editor_title_bar,
 		"HBoxContainer",
-		true,
+		"",
 		func(c: HBoxContainer) -> bool: return c.get_child_count() > 1
 	)
 	var context_switcher_buttons := context_switcher.get_children()
@@ -184,25 +178,40 @@ func _init() -> void:
 	context_switcher_script_button = context_switcher_buttons[2]
 	context_switcher_asset_lib_button = context_switcher_buttons[3]
 
-	run_bar = Utils.find_child_by_type(editor_title_bar, "EditorRunBar")
+	run_bar = Utils.find_child(editor_title_bar, "EditorRunBar")
 	var run_bar_buttons = run_bar.find_children("", "Button", true, false)
-	run_bar_play_button = run_bar_buttons[0]
-	run_bar_pause_button = run_bar_buttons[1]
-	run_bar_stop_button = run_bar_buttons[2]
-	run_bar_debug_button = run_bar_buttons[3]
-	run_bar_play_current_button = run_bar_buttons[5]
-	run_bar_play_custom_button = run_bar_buttons[6]
-	run_bar_movie_mode_button = run_bar_buttons[7]
-	rendering_options = Utils.find_child_by_type(editor_title_bar, "OptionButton")
+	for button in run_bar_buttons:
+		print("BUTTON IDX: ", run_bar_buttons.find(button))
+		print("BUTTON TEXT: ", button.text)
+		print("BUTTON PATH: ", button.get_path())
+	
+	var link_button_children := base_control.find_children("*", "LinkButton", true, false)
+	var engine_version_info: Dictionary = Engine.get_version_info()
+	var engine_version_text: String = ".".join([engine_version_info.major, engine_version_info.minor, engine_version_info.patch, engine_version_info.status])
+	var is_mono_version = link_button_children.filter(func(link_button): return link_button.text.to_lower().contains("mono"))
+
+	var run_bar_button_start_index := 0
+	### Accounts for the extra Button included in Mono Godot
+	if is_mono_version:
+		run_bar_button_start_index = 1
+
+	run_bar_play_button = run_bar_buttons[run_bar_button_start_index]
+	run_bar_pause_button = run_bar_buttons[run_bar_button_start_index + 1]
+	run_bar_stop_button = run_bar_buttons[run_bar_button_start_index + 2]
+	run_bar_debug_button = run_bar_buttons[run_bar_button_start_index + 3]
+	run_bar_play_current_button = run_bar_buttons[run_bar_button_start_index + 5]
+	run_bar_play_custom_button = run_bar_buttons[run_bar_button_start_index + 6]
+	run_bar_movie_mode_button = run_bar_buttons[run_bar_button_start_index + 7]
+	rendering_options = Utils.find_child(editor_title_bar, "OptionButton")
 
 	# Main Screen
 	main_screen = EditorInterface.get_editor_main_screen()
-	main_screen_tabs = Utils.find_child_by_type(main_screen.get_parent().get_parent(), "TabBar")
-	distraction_free_button = Utils.find_child_by_type(main_screen_tabs.get_parent(), "Button")
-	canvas_item_editor = Utils.find_child_by_type(main_screen, "CanvasItemEditor")
-	canvas_item_editor_viewport = Utils.find_child_by_type(
-		canvas_item_editor, "CanvasItemEditorViewport"
+	main_screen_tabs = Utils.find_child(main_screen.get_parent().get_parent(), "TabBar")
+	distraction_free_button = (
+		main_screen_tabs.get_parent().find_children("", "Button", true, false).back()
 	)
+	canvas_item_editor = Utils.find_child(main_screen, "CanvasItemEditor")
+	canvas_item_editor_viewport = Utils.find_child(canvas_item_editor, "CanvasItemEditorViewport")
 	canvas_item_editor_toolbar = canvas_item_editor.get_child(0).get_child(0).get_child(0)
 	var canvas_item_editor_toolbar_buttons := canvas_item_editor_toolbar.find_children(
 		"", "Button", false, false
@@ -222,14 +231,12 @@ func _init() -> void:
 	canvas_item_editor_toolbar_group_button = canvas_item_editor_toolbar_buttons[13]
 	canvas_item_editor_toolbar_skeleton_options_button = canvas_item_editor_toolbar_buttons[15]
 
-	canvas_item_editor_zoom_widget = Utils.find_child_by_type(
-		canvas_item_editor, "EditorZoomWidget"
-	)
+	canvas_item_editor_zoom_widget = Utils.find_child(canvas_item_editor, "EditorZoomWidget")
 	canvas_item_editor_zoom_button_lower = canvas_item_editor_zoom_widget.get_child(0)
 	canvas_item_editor_zoom_button_reset = canvas_item_editor_zoom_widget.get_child(1)
 	canvas_item_editor_zoom_button_increase = canvas_item_editor_zoom_widget.get_child(2)
 
-	snap_options_window = Utils.find_child_by_type(base_control, "SnapDialog")
+	snap_options_window = Utils.find_child(base_control, "SnapDialog")
 	snap_options = snap_options_window.get_child(0)
 	snap_options_cancel_button = snap_options_window.get_cancel_button()
 	snap_options_ok_button = snap_options_window.get_ok_button()
@@ -242,141 +249,153 @@ func _init() -> void:
 	snap_options_rotation_step_controls.assign(snap_options_controls.slice(2, 4))
 	snap_options_scale_step_controls.assign(snap_options.get_child(4).get_children())
 
-	spatial_editor = Utils.find_child_by_type(main_screen, "Node3DEditor")
+	spatial_editor = Utils.find_child(main_screen, "Node3DEditor")
 	spatial_editor_cameras.assign(spatial_editor.find_children("", "Camera3D", true, false))
 	spatial_editor_surface = (
-		Utils.find_child_by_type(spatial_editor, "ViewportNavigationControl").get_parent()
+		Utils.find_child(spatial_editor, "ViewportNavigationControl").get_parent()
 	)
 	script_editor = EditorInterface.get_script_editor()
 	script_editor_window_wrapper = script_editor.get_parent()
 	script_editor_code_panel = script_editor.get_child(0).get_child(1).get_child(1)
 	script_editor_top_bar = script_editor.get_child(0).get_child(0)
-	script_editor_items = Utils.find_child_by_type(script_editor, "ItemList")
+	script_editor_items = Utils.find_child(script_editor, "ItemList")
 	script_editor_items_panel = script_editor_items.get_parent()
 	script_editor_functions_panel = script_editor_items_panel.get_parent().get_child(1)
-	asset_lib = Utils.find_child_by_type(main_screen, "EditorAssetLibrary")
+	asset_lib = Utils.find_child(main_screen, "EditorAssetLibrary")
 
 	# Left Upper
-	scene_dock = Utils.find_child_by_type(base_control, "SceneTreeDock")
+	scene_dock = Utils.find_child(base_control, "SceneTreeDock")
 	scene_dock_button_add = scene_dock.get_child(0).get_child(0)
-	node_create_window = Utils.find_child_by_type(scene_dock, "CreateDialog")
-	node_create_panel = Utils.find_child_by_type(node_create_window, "HSplitContainer")
-	var node_create_dialog_vboxcontainer: VBoxContainer = Utils.find_child_by_type(
-		node_create_panel, "VBoxContainer", false
+	node_create_window = Utils.find_child(scene_dock, "CreateDialog")
+	node_create_panel = Utils.find_child(node_create_window, "HSplitContainer")
+	var node_create_dialog_vboxcontainer: VBoxContainer = (
+		node_create_window.get_child(3, true).get_child(1, true)
 	)
-	node_create_dialog_node_tree = Utils.find_child_by_type(
-		node_create_dialog_vboxcontainer, "Tree"
+	node_create_dialog_node_tree = Utils.find_child(node_create_dialog_vboxcontainer, "Tree")
+	node_create_dialog_search_bar = (
+		node_create_dialog_vboxcontainer.get_child(1, true).get_child(0, true).get_child(0, true)
 	)
-	node_create_dialog_search_bar = Utils.find_child_by_type(
-		node_create_dialog_vboxcontainer, "LineEdit"
-	)
-	node_create_dialog_button_create = node_create_window.get_ok_button()
-	node_create_dialog_button_cancel = node_create_window.get_cancel_button()
-	scene_tabs = Utils.find_child_by_type(scene_dock.get_parent(), "TabBar")
-	var scene_tree_editor := Utils.find_child_by_type(scene_dock, "SceneTreeEditor")
-	scene_tree = Utils.find_child_by_type(scene_tree_editor, "Tree")
-	import_dock = Utils.find_child_by_type(base_control, "ImportDock")
+	node_create_dialog_button_create = node_create_window.get_child(2, true).get_child(3, true)
+	node_create_dialog_button_cancel = node_create_window.get_child(2, true).get_child(1, true)
+	scene_tabs = Utils.find_child(scene_dock.get_parent(), "TabBar")
+	var scene_tree_editor := Utils.find_child(scene_dock, "SceneTreeEditor")
+	scene_tree = Utils.find_child(scene_tree_editor, "Tree")
+	import_dock = Utils.find_child(base_control, "ImportDock")
 
 	# Left Bottom
-	filesystem_dock = Utils.find_child_by_type(base_control, "FileSystemDock")
-	filesystem_tabs = Utils.find_child_by_type(filesystem_dock.get_parent(), "TabBar")
-	filesystem_tree = Utils.find_child_by_type(
-		Utils.find_child_by_type(filesystem_dock, "SplitContainer"), "Tree"
-	)
+	filesystem_dock = Utils.find_child(base_control, "FileSystemDock")
+	filesystem_tabs = Utils.find_child(filesystem_dock.get_parent(), "TabBar")
+	filesystem_tree = Utils.find_child(Utils.find_child(filesystem_dock, "SplitContainer"), "Tree")
 
 	# Right
-	inspector_dock = Utils.find_child_by_type(base_control, "InspectorDock")
-	inspector_tabs = Utils.find_child_by_type(inspector_dock.get_parent(), "TabBar")
+	inspector_dock = Utils.find_child(base_control, "InspectorDock")
+	inspector_tabs = Utils.find_child(inspector_dock.get_parent(), "TabBar")
 	inspector_editor = EditorInterface.get_inspector()
-	node_dock = Utils.find_child_by_type(base_control, "NodeDock")
+	node_dock = Utils.find_child(base_control, "NodeDock")
 	node_dock_buttons_box = node_dock.get_child(0)
 	var node_dock_buttons := node_dock_buttons_box.get_children()
 	node_dock_signals_button = node_dock_buttons[0]
 	node_dock_groups_button = node_dock_buttons[1]
-	node_dock_signals_editor = Utils.find_child_by_type(node_dock, "ConnectionsDock")
-	node_dock_signals_tree = Utils.find_child_by_type(node_dock_signals_editor, "Tree")
-
-	signals_dialog_window = Utils.find_child_by_type(node_dock_signals_editor, "ConnectDialog")
+	node_dock_signals_editor = Utils.find_child(node_dock, "ConnectionsDock")
+	node_dock_signals_tree = Utils.find_child(node_dock_signals_editor, "Tree")
+	signals_dialog_window = Utils.find_child(node_dock_signals_editor, "ConnectDialog")
 	signals_dialog = signals_dialog_window.get_child(0)
-	signals_dialog_tree = Utils.find_child_by_type(signals_dialog, "Tree")
+	signals_dialog_tree = Utils.find_child(signals_dialog, "Tree")
 	var signals_dialog_line_edits := signals_dialog.get_child(0).find_children(
 		"", "LineEdit", true, false
 	)
 	signals_dialog_signal_line_edit = signals_dialog_line_edits[0]
-	signals_dialog_method_line_edit = signals_dialog_line_edits[-1]
+	signals_dialog_method_line_edit = signals_dialog_line_edits[- 1]
 	signals_dialog_cancel_button = signals_dialog_window.get_cancel_button()
 	signals_dialog_ok_button = signals_dialog_window.get_ok_button()
-	node_dock_groups_editor = Utils.find_child_by_type(node_dock, "GroupsEditor")
-	history_dock = Utils.find_child_by_type(base_control, "HistoryDock")
+	node_dock_groups_editor = Utils.find_child(node_dock, "GroupsEditor")
+	history_dock = Utils.find_child(base_control, "HistoryDock")
 
 	# Bottom
-	logger = Utils.find_child_by_type(base_control, "EditorLog")
-	logger_rich_text_label = Utils.find_child_by_type(logger, "RichTextLabel")
+	logger = Utils.find_child(base_control, "EditorLog")
+	logger_rich_text_label = Utils.find_child(logger, "RichTextLabel")
 
 	bottom_panels_container = logger.get_parent().get_parent()
 	var bottom_panels_vboxcontainer: VBoxContainer = logger.get_parent()
 
-	debugger = Utils.find_child_by_type(bottom_panels_vboxcontainer, "EditorDebuggerNode", false)
-	find_in_files = Utils.find_child_by_type(bottom_panels_vboxcontainer, "FindInFilesPanel", false)
-	audio_buses = Utils.find_child_by_type(bottom_panels_vboxcontainer, "EditorAudioBuses", false)
-	animation_player = Utils.find_child_by_type(
-		bottom_panels_vboxcontainer, "AnimationPlayerEditor", false
+	debugger = (
+		bottom_panels_vboxcontainer.find_children("*", "EditorDebuggerNode", false, false).back()
 	)
-	shader = Utils.find_child_by_type(bottom_panels_vboxcontainer, "WindowWrapper", false)
-	var editor_toaster := Utils.find_child_by_type(bottom_panels_vboxcontainer, "EditorToaster")
-	bottom_buttons_container = Utils.find_child_by_type(
-		editor_toaster.get_parent(), "HBoxContainer", false
+	find_in_files = (
+		bottom_panels_vboxcontainer.find_children("*", "FindInFilesPanel", false, false).back()
+	)
+	audio_buses = (
+		bottom_panels_vboxcontainer.find_children("*", "EditorAudioBuses", false, false).back()
+	)
+	animation_player = (
+		bottom_panels_vboxcontainer.find_children("*", "AnimationPlayerEditor", false, false).back()
+	)
+	shader = bottom_panels_vboxcontainer.find_children("*", "WindowWrapper", false, false).back()
+	bottom_buttons_container = (
+		Utils
+		.find_child(bottom_panels_vboxcontainer, "EditorToaster")
+		.get_parent()
+		.find_children("", "HBoxContainer", false, false)
+		.front()
 	)
 
 	var bottom_button_children := bottom_buttons_container.get_children()
-	bottom_button_output = bottom_button_children[0]
-	bottom_button_debugger = bottom_button_children[1]
-	bottom_button_tileset = bottom_button_children[-3]
-	bottom_button_tilemap = bottom_button_children[-2]
+	bottom_button_output = _get_bottom_button(bottom_button_children, "Output")
+	bottom_button_debugger = _get_bottom_button(bottom_button_children, "Debugger")
+	bottom_button_tileset = _get_bottom_button(bottom_button_children, "TileSet")
+	bottom_button_tilemap = _get_bottom_button(bottom_button_children, "TileMap")
 	bottom_buttons = [
 		bottom_button_output, bottom_button_debugger, bottom_button_tileset, bottom_button_tilemap
 	]
 
-	tilemap = Utils.find_child_by_type(bottom_panels_vboxcontainer, "TileMapEditor", false)
-	var tilemap_flow_container: HFlowContainer = Utils.find_child_by_type(
-		tilemap, "HFlowContainer", false
+	tilemap = bottom_panels_vboxcontainer.find_children("*", "TileMapEditor", false, false).back()
+	var tilemap_flow_container: HFlowContainer = (
+		tilemap.find_children("", "HFlowContainer", false, false).back()
 	)
+
 	tilemap_tabs = tilemap_flow_container.get_child(0)
 
-	tilemap_tiles_panel = tilemap.get_child(2)
-	var tilemap_tiles_hsplitcontainer: HSplitContainer = Utils.find_child_by_type(
-		tilemap_tiles_panel, "HSplitContainer", false
+	tilemap_tiles_panel = tilemap.get_node("Tiles")
+	var tilemap_tiles_hsplitcontainer: HSplitContainer = Utils.get_child_by_type(
+		tilemap_tiles_panel, "HSplitContainer"
 	)
-	tilemap_tiles = Utils.find_child_by_type(tilemap_tiles_hsplitcontainer, "ItemList")
-	tilemap_tiles_atlas_view = Utils.find_child_by_type(
-		tilemap_tiles_hsplitcontainer, "TileAtlasView", false
+	tilemap_tiles = (
+		tilemap_tiles_hsplitcontainer
+		.get_child(0)
+		.find_children("*", "ItemList", false, false)
+		.back()
+	)
+	tilemap_tiles_atlas_view = Utils.get_child_by_type(
+		tilemap_tiles_hsplitcontainer, "TileAtlasView"
 	)
 	tilemap_tiles_toolbar = tilemap_flow_container.get_child(1)
 
-	tilemap_patterns_panel = tilemap.get_child(3)
-	tilemap_terrains_panel = tilemap.get_child(4)
+	tilemap_terrains_panel = tilemap.get_node("Terrains")
 	var tilemap_terrains_hsplitcontainer: HSplitContainer = tilemap_terrains_panel.get_child(0)
-	tilemap_terrains_tree = Utils.find_child_by_type(tilemap_terrains_hsplitcontainer, "Tree")
-	tilemap_terrains_tiles = Utils.find_child_by_type(tilemap_terrains_hsplitcontainer, "ItemList")
+	tilemap_terrains_tree = (
+		tilemap_terrains_hsplitcontainer.find_children("*", "Tree", false, false).back()
+	)
+	tilemap_terrains_tiles = (
+		tilemap_terrains_hsplitcontainer.find_children("*", "ItemList", false, false).back()
+	)
 	tilemap_terrains_toolbar = tilemap_flow_container.get_child(2)
 	tilemap_terrains_tool_draw = tilemap_terrains_toolbar.get_child(0).get_child(0)
 
-	tilemap_panels = [tilemap_tiles_panel, tilemap_patterns_panel, tilemap_terrains_panel]
-
-	tileset = Utils.find_child_by_type(bottom_panels_vboxcontainer, "TileSetEditor", false)
-	tileset_tabs = Utils.find_child_by_type(tileset, "TabBar")
-	tileset_tiles_panel = tileset.get_child(0).get_child(1)
-	tileset_patterns_panel = tileset.get_child(0).get_child(2)
-	tileset_panels = [tileset_tiles_panel, tileset_patterns_panel]
+	tileset = bottom_panels_vboxcontainer.find_children("*", "TileSetEditor", false, false).back()
 
 	for window in [signals_dialog_window, node_create_window]:
 		window_toggle_tour_mode(window, true)
 
+	tabs_text = {
+		scene_tabs: "Scene Tree",
+		inspector_tabs: "Inspector",
+		main_screen_tabs: "Main Screen",
+		filesystem_tabs: "FileSystem",
+	}
 
 func clean_up() -> void:
 	for window in [signals_dialog_window, node_create_window]:
 		window_toggle_tour_mode(window, false)
-
 
 func window_toggle_tour_mode(window: Window, is_in_tour: bool) -> void:
 	window.dialog_close_on_escape = not is_in_tour
@@ -385,7 +404,6 @@ func window_toggle_tour_mode(window: Window, is_in_tour: bool) -> void:
 	window.physics_object_picking = is_in_tour
 	window.physics_object_picking_sort = is_in_tour
 
-
 ## Applies the Default layout to the editor.
 ## This is the equivalent of going to Editor -> Editor Layout -> Default.
 ##
@@ -393,11 +411,14 @@ func window_toggle_tour_mode(window: Window, is_in_tour: bool) -> void:
 ## This can't be done in the _init() function because upon opening Godot, loading previously opened
 ## scenes and restoring the user's editor layout can take several seconds.
 func restore_default_layout() -> void:
-	var editor_popup_menu := menu_bar.get_menu_popup(3)
-	for layouts_popup_menu: PopupMenu in editor_popup_menu.get_children():
-		var id: int = layouts_popup_menu.get_item_id(3)
-		layouts_popup_menu.id_pressed.emit(id)
-
+	for menu_bar_index in range(menu_bar.get_menu_count()):
+		var editor_popup_menu: PopupMenu = menu_bar.get_menu_popup(menu_bar_index)
+		if editor_popup_menu.name == "Editor":
+			for layouts_popup_menu in editor_popup_menu.get_children():
+				for layouts_popup_index in range(layouts_popup_menu.item_count):
+					if layouts_popup_menu.get_item_text(layouts_popup_index) == "Default":
+						var id: int = layouts_popup_menu.get_item_id(layouts_popup_index)
+						layouts_popup_menu.id_pressed.emit(id)
 
 func unfold_tree_item(item: TreeItem) -> void:
 	var parent := item.get_parent()
@@ -409,6 +430,11 @@ func unfold_tree_item(item: TreeItem) -> void:
 		item.collapsed = false
 		item = item.get_parent()
 
-
 func is_in_scripting_context() -> bool:
 	return script_editor_window_wrapper.visible
+
+func _get_bottom_button(buttons: Array[Node], text: String) -> Button:
+	for button in buttons:
+		if button.get("text").begins_with(text):
+			return button
+	return null

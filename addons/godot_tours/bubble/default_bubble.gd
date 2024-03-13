@@ -2,10 +2,10 @@
 @tool
 extends "bubble.gd"
 
-const RichTextLabelPackedScene := preload("rich_text_label/rich_text_label.tscn")
-const CodeEditPackedScene := preload("code_edit.tscn")
-const TextureRectPackedScene := preload("texture_rect.tscn")
-const VideoStreamPlayerPackedScene := preload("video_stream_player.tscn")
+const RichTextLabelPackedScene := preload ("rich_text_label/rich_text_label.tscn")
+const CodeEditPackedScene := preload ("code_edit.tscn")
+const TextureRectPackedScene := preload ("texture_rect.tscn")
+const VideoStreamPlayerPackedScene := preload ("video_stream_player.tscn")
 
 ## Separation between paragraphs of text and elements in the main content in pixels.
 @export var paragraph_separation := 12:
@@ -34,23 +34,22 @@ const VideoStreamPlayerPackedScene := preload("video_stream_player.tscn")
 
 @onready var step_count_label: Label = %StepCountLabel
 
-
 func setup(translation_service: TranslationService, step_count: int) -> void:
+	print("CHILD BUBBLE SETUP")
 	super(translation_service, step_count)
 	update_step_count_display(0)
 	update_locale({
-		back_button: {text = "BACK"},
-		next_button: {text = "NEXT STEP"},
+		back_button: {text="BACK"},
+		next_button: {text="NEXT STEP"},
 	})
 
-
 func _ready() -> void:
+	print("DEFAULT BUBBLE READY")
 	if not Engine.is_editor_hint() or EditorInterface.get_edited_scene_root() == self:
 		return
 	
 	# Clear tasks etc. in case we have some for testing in the scene.
 	clear_elements_and_tasks()
-	
 	back_button.pressed.connect(func() -> void: back_button_pressed.emit())
 	next_button.pressed.connect(func() -> void: next_button_pressed.emit())
 	button_close.pressed.connect(func() -> void:
@@ -73,22 +72,20 @@ func _ready() -> void:
 	avatar.scale = avatar.scale_start * editor_scale
 	paragraph_separation *= editor_scale
 
-
 func on_tour_step_changed(index: int) -> void:
 	back_button.visible = true
 	finish_button.visible = false
 	if index == 0:
 		back_button.visible = false
 		next_button.visible = tasks_v_box_container.get_child_count() == 0
-		next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER | Control.SIZE_EXPAND
+		next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER|Control.SIZE_EXPAND
 	elif index == step_count - 1:
 		next_button.visible = false
 		finish_button.visible = true
 	else:
 		back_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		next_button.size_flags_horizontal = Control.SIZE_SHRINK_END | Control.SIZE_EXPAND
+		next_button.size_flags_horizontal = Control.SIZE_SHRINK_END|Control.SIZE_EXPAND
 	update_step_count_display(index)
-
 
 func clear() -> void:
 	next_button.visible = true
@@ -97,13 +94,11 @@ func clear() -> void:
 	set_background(null)
 	clear_elements_and_tasks()
 
-
 func clear_elements_and_tasks() -> void:
 	for control in [main_v_box_container, tasks_v_box_container]:
 		for node in control.get_children():
 			node.queue_free()
 		control.visible = false
-
 
 func add_element(element: Control, data: Variant) -> void:
 	main_v_box_container.visible = true
@@ -117,32 +112,27 @@ func add_element(element: Control, data: Variant) -> void:
 		element.finished.connect(element.play)
 		element.play()
 
-
 func set_title(title_text: String) -> void:
+	print("SETTING TITLE TO ", title_text)
 	title_label.text = title_text
-
 
 func add_text(text: Array[String]) -> void:
 	for line in text:
 		add_element(RichTextLabelPackedScene.instantiate(), line)
 
-
 func add_code(code: Array[String]) -> void:
 	for snippet in code:
 		add_element(CodeEditPackedScene.instantiate(), snippet)
-
 
 func add_texture(texture: Texture2D) -> void:
 	if texture == null:
 		return
 	add_element(TextureRectPackedScene.instantiate(), texture)
 
-
 func add_video(stream: VideoStream) -> void:
 	if stream == null or not stream is VideoStream:
 		return
 	add_element(VideoStreamPlayerPackedScene.instantiate(), stream)
-
 
 func add_task(description: String, repeat: int, repeat_callable: Callable, error_predicate: Callable) -> void:
 	tasks_v_box_container.visible = true
@@ -152,41 +142,38 @@ func add_task(description: String, repeat: int, repeat_callable: Callable, error
 	task.setup(description, repeat, repeat_callable, error_predicate)
 	check_tasks()
 
-
 func set_header(text: String) -> void:
 	header_rich_text_label.text = text
 	header_rich_text_label.visible = not text.is_empty()
-
 
 func set_footer(text: String) -> void:
 	footer_rich_text_label.text = text
 	footer_rich_text_label.visible = not text.is_empty()
 	footer_spacer.visible = footer_rich_text_label.visible
 
-
 func set_background(texture: Texture2D) -> void:
 	background_texture_rect.texture = texture
 	background_texture_rect.visible = texture != null
 
-
 func check_tasks() -> bool:
+	print("Tasks: ", )
+	for task in tasks_v_box_container.get_children():
+		if !task.is_done():
+			print(task.description_rich_text_label.text)
 	var are_tasks_done := tasks_v_box_container.get_children().all(func(task: Task) -> bool: return task.is_done())
 	next_button.visible = are_tasks_done
 	if are_tasks_done:
 		avatar.do_wink()
 	return are_tasks_done
 
-
 func update_step_count_display(current_step_index: int) -> void:
 	step_count_label.text = "%s/%s" % [current_step_index, step_count - 2]
 	step_count_label.visible = current_step_index != 0 and current_step_index != step_count - 1
-
 
 func _add_debug_shortcuts() -> void:
 	next_button.shortcut = load("res://addons/godot_tours/bubble/shortcut_debug_button_next.tres")
 	back_button.shortcut = load("res://addons/godot_tours/bubble/shortcut_debug_button_back.tres")
 	button_close_yes.shortcut = load("res://addons/godot_tours/bubble/shortcut_debug_button_close.tres")
-
 
 ## [b]Virtual[/b] method to change the text of the next button.
 func set_finish_button_text(text: String) -> void:

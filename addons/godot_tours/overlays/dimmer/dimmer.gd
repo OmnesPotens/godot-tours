@@ -1,5 +1,5 @@
 @tool
-extends SubViewportContainer
+extends CanvasGroup
 
 const DimmerMaskPackedScene := preload("dimmer_mask.tscn")
 
@@ -25,7 +25,7 @@ func add_mask() -> ColorRect:
 
 
 func refresh() -> void:
-	size = root.size
+	film_color_rect.size = root.size
 
 
 func toggle_dimmer_mask(is_on: bool) -> void:

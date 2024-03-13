@@ -59,6 +59,7 @@ var avatar_tween_rotation: Tween = null
 
 
 func setup(translation_service: TranslationService, step_count: int) -> void:
+	print("BASE BUBBLE SETUP")
 	self.translation_service = translation_service
 	self.step_count = step_count
 	
@@ -146,6 +147,7 @@ func check_tasks() -> bool:
 func move_and_anchor(
 	control: Control, at := At.CENTER, margin := 16.0, offset_vector := Vector2.ZERO
 ) -> void:
+	print("IN BUBBLE MOVE AND ANCHOR")
 	self.control = control
 	self.at = at
 	self.margin = margin
@@ -154,6 +156,7 @@ func move_and_anchor(
 
 ## Sets the avatar location at the top of the bubble. Check [member avatar_at] for details on the parameter.
 func set_avatar_at(at := AvatarAt.LEFT) -> void:
+	print("IN BUBBLE SET AVATAR AT")
 	avatar_at = at
 	var editor_scale := EditorInterface.get_editor_scale()
 	var at_offset := {
@@ -192,6 +195,7 @@ func set_avatar_at(at := AvatarAt.LEFT) -> void:
 ## Refreshes the position and size of the bubble and its avatar as necessary.
 ## Connected to the [member minimum_size_changed] signal of the [member panel].
 func refresh() -> void:
+	print("REFRESHING BUBBLE")
 	if control == null:
 		return
 
@@ -211,7 +215,9 @@ func refresh() -> void:
 	var new_global_position: Vector2 = control.global_position + at_offset[at] + offset_vector
 	if not panel.global_position.is_equal_approx(new_global_position):
 		if tween != null:
+			print("KILLING TWEEN")
 			tween.kill()
+		print("RECREATING TWEEN")
 		tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tween.tween_property(panel, "global_position", new_global_position, TWEEN_DURATION)
 	set_avatar_at(avatar_at)

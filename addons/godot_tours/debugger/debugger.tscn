@@ -25,6 +25,7 @@ layout_mode = 2
 size_flags_horizontal = 0
 tooltip_text = "Toggle the visibility of overlays.
 Overlays allow or block mouse input, and outline clickable areas."
+button_pressed = true
 text = "Dimmers"
 
 [node name="DimmersAlphaLabel" type="Label" parent="VBoxContainer"]
@@ -103,6 +104,7 @@ value = 1.0
 rounded = true
 allow_greater = true
 allow_lesser = true
+suffix = "/ 1"
 
 [node name="JumpButton" type="Button" parent="VBoxContainer/JumpHBoxContainer"]
 unique_name_in_owner = true

@@ -42,7 +42,6 @@ var tour: Tour = null
 ## This button only shows when there's no tour active and the welcome menu is hidden.
 var _button_top_bar: Button = null
 
-
 func _enter_tree() -> void:
 	if tour_list == null:
 		push_warning("Godot Tours: no tours found. The user interface will not be modified.")
@@ -80,7 +79,6 @@ func _enter_tree() -> void:
 	if Debugger.CLI_OPTION_DEBUG in OS.get_cmdline_user_args():
 		toggle_debugger()
 
-
 ## Adds a button labeled Godot Tours to the editor top bar, right before the run buttons.
 ## This button only shows when there are tours in the project, there's no tour active, and the welcome menu is hidden.
 func _add_top_bar_button() -> void:
@@ -94,7 +92,6 @@ func _add_top_bar_button() -> void:
 		_button_top_bar, editor_interface_access.run_bar.get_index()
 	)
 	_button_top_bar.pressed.connect(_show_welcome_menu)
-
 
 ## Shows the welcome menu, which lists all the tours in the file res://godot_tours.tres.
 func _show_welcome_menu() -> void:
@@ -110,14 +107,13 @@ func _show_welcome_menu() -> void:
 	welcome_menu.setup(tour_list)
 	welcome_menu.tour_start_requested.connect(start_tour)
 	welcome_menu.tour_reset_requested.connect(func reset_tour(tour_path: String) -> void:
-		var was_reset_successful := _reset_tour_files(tour_path)
+		var was_reset_successful:=_reset_tour_files(tour_path)
 		if was_reset_successful:
 			welcome_menu.show_reset_success()
 		else:
 			welcome_menu.show_reset_failure()
 	)
 	welcome_menu.closed.connect(_button_top_bar.show)
-
 
 func _exit_tree() -> void:
 	if _button_top_bar != null:
@@ -140,14 +136,12 @@ func _exit_tree() -> void:
 	remove_translation_parser_plugin(translation_parser)
 	ensure_pot_generation(plugin_path, true)
 
-
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.keycode == KEY_F10 and event.ctrl_pressed and event.pressed:
 		toggle_debugger()
 
-
 ## Registers and unregisters translation files for the tours.
-func ensure_pot_generation(plugin_path: String, do_clean_up := false) -> void:
+func ensure_pot_generation(plugin_path: String, do_clean_up:=false) -> void:
 	if tour_list == null:
 		return
 
@@ -162,7 +156,6 @@ func ensure_pot_generation(plugin_path: String, do_clean_up := false) -> void:
 			pot_files_setting.push_back(file_path)
 	ProjectSettings.set_setting(key, null if pot_files_setting.is_empty() else pot_files_setting)
 	ProjectSettings.save()
-
 
 ## Toggles the debugger dock. If it's not present, it's added to the upper-left dock slot.
 func toggle_debugger() -> void:
@@ -187,7 +180,6 @@ func toggle_debugger() -> void:
 		else:
 			_button_top_bar.hide()
 
-
 ## Looks for a godot_tours.tres file at the root of the project. This file should contain an array of
 ## TourMetadata. Finds and loads the tours.
 func get_tours() -> GodotTourList:
@@ -201,9 +193,15 @@ func get_tours() -> GodotTourList:
 		return null
 	return load(TOUR_LIST_FILE_PATH)
 
+# Takes all tours in the array after the current one and filters out all locked tours
+# If there are still tours that are not locked then return true, else false
+func are_unlocked_tours() -> bool:
+	if tour_list.tours.slice(_current_tour_index).filter(func(tour): print("FOUND TOUR: ", tour.tour_path); return tour.is_locked == true).size() - 1 > 0:
+		return true
+	return false
 
 func start_tour(tour_index: int) -> void:
-	if welcome_menu != null:
+	if welcome_menu != null and is_instance_valid(welcome_menu):
 		welcome_menu.queue_free()
 		welcome_menu = null
 
@@ -213,21 +211,22 @@ func start_tour(tour_index: int) -> void:
 
 	_current_tour_index = tour_index
 	var tour_path: String = tour_list.tours[tour_index].tour_path
-	tour = load(tour_path).new(editor_interface_access, overlays, translation_service)
-	EditorInterface.get_base_control().add_child(tour)
-	if _current_tour_index < tour_list.tours.size() - 1:
-		tour.bubble.set_finish_button_text("Continue to the next tour")
-
+	if FileAccess.file_exists(tour_path):
+		tour = load(tour_path).new(editor_interface_access, overlays, translation_service)
+		EditorInterface.get_base_control().add_child(tour)
+		if are_unlocked_tours():
+			tour.bubble.set_finish_button_text("Continue to the next tour")
+		else:
+			tour.bubble.set_finish_button_text("Finish tour")
 	tour.closed.connect(_button_top_bar.show)
 	tour.ended.connect(_on_tour_ended)
 
-
 func _on_tour_ended() -> void:
-	if _current_tour_index < tour_list.tours.size() - 1:
-		start_tour(_current_tour_index + 1)
+	if are_unlocked_tours():
+		var idx := _current_tour_index + 1
+		start_tour(idx)
 	else:
 		_button_top_bar.show()
-
 
 ## Finds GDScript, tscn, and tres files in the tour source directory, next to the tour's .gd file, and copies them to the root directory.
 ## Returns true if the operation was successful, false otherwise.
